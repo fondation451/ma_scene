@@ -40,7 +40,7 @@ class Implicit:
         return self.iso - self.f(P) <= self.eps
 
 
-    # Calcul le vecteur de P1P2 dont la taille est step_line fois moins grande que le vecteur P1P2
+    # Calcule le vecteur de P1P2 dont la taille est step_line fois moins grande que le vecteur P1P2
     def vecteur_dir(self, p1, p2, step_line):
         x = p2[0] - p1[0]
         y = p2[1] - p1[1]
@@ -60,10 +60,9 @@ class Implicit:
         p_curr = p1
         for i in range(0, int(self.step_line) + 1):
             tmp = self.fiso(p_curr)
-            print("tmp = \n")
-            print(tmp)
+#            print(p_curr,tmp)
             if tmp <= self.eps:
-                if p_min == [] or  p_min_val > tmp:
+                if p_min == [] or p_min_val > tmp:
                     p_min = p_curr
                     p_min_val = tmp
             p_curr = self.add_vec(p_curr, vect_dir)
@@ -112,6 +111,7 @@ class Implicit:
 
 
     def compute_enveloppe(self):
+        mult = 3
         x_min = 0
         x_max = 0
         y_min = 0
@@ -125,10 +125,11 @@ class Implicit:
             if p[1] > y_max: y_max = p[1]
             if p[2] < z_min: z_min = p[2]
             if p[2] > z_max: z_max = p[2]
-        longueur = (x_max - x_min) * 10
-        largeur = (y_max - y_min) * 10
-        profondeur = (z_max - z_min) * 10
-        c = [x_min * 10, y_min * 10, z_min * 10] # cote de l'enveloppe parallélépipédique en bas à gauche premier plan
+        longueur = (x_max - x_min) * mult
+        largeur = (y_max - y_min) * mult
+        profondeur = (z_max - z_min) * mult
+        c = [x_min * mult, y_min * mult, z_min * mult]
+        # cote de l'enveloppe parallélépipédique en bas à gauche premier plan
         return (c, longueur, largeur, profondeur)
 
 
@@ -142,15 +143,28 @@ class Implicit:
         step_lon = lon_env / self.step_cube
         step_lar = lar_env / self.step_cube
         step_pro = pro_env / self.step_cube
-
+        w=0
         for i in range(0, int(step_lon) + 1):
-            c_x = c_env[0] + step_lon * i
+            c_x = c_env[0] + self.step_cube * i
             for j in range(0, int(step_lar) + 1):
-                c_y = c_env[1] + step_lar * j
+                c_y = c_env[1] + self.step_cube * j
                 for k in range(0, int(step_pro) + 1):
-                    c_z = c_env[2] + step_pro * k
+#                    if (i+j+k)%2: continue
+                    c_z = c_env[2] + self.step_cube * k
                     new_points = self.intersection_cube([c_x, c_y, c_z])
-                    if new_points != []:
-                        out_points.append(new_points)
-
+                    if new_points:
+                        out_points.append(self.points_to_poly(new_points))
         return out_points
+
+    # Ordonne une liste de sommets pour en faire un polygône
+    # Semble fonctionner souvent mais il reste qq trous dans la surface
+    def points_to_poly(self, l):
+        if len(l)<4: return l
+        l2 = [l[0]]
+        l.remove(l[0])
+        while l:
+            point = l2[-1]
+            nearest = min(l, key = lambda p:self.dist(p,point))
+            l.remove(nearest)
+            l2.append(nearest)
+        return l2

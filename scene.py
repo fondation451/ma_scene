@@ -8,12 +8,18 @@ from random import random
 d2r = 2*pi/360 #degrés (gl et code) vers radians (python.math)
 
 class Scene:
-    def __init__(s, points, lignes, faces):
+    def __init__(s, points, lignes, faces, imppoints):
         s.lat = 30             # latitude
         s.lon = 30             # longitude
         s.xOld, s.yOld = 0, 0  # ancienne position de la souris
         s.points = points; s.lignes = lignes; s.faces = faces
+        s.imppoints = imppoints
+        s.drawimp = True
         glEnable(GL_DEPTH_TEST)
+        # glEnable(GL_LIGHTING) j'ai voulu mettre de la lumière pour améliorer le contraste
+        # glEnable(GL_LIGHT0)   mais il faut définir les normales pour que ça marche
+        # glLightfv(GL_LIGHT0, GL_DIFFUSE, (255,0,0))
+        # glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, (255,255,255))
         glClearColor(0,0,0,0)
         glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)#GL_LINE pour voir en fil de fer
         s.changePerspective()
@@ -51,6 +57,14 @@ class Scene:
             glVertex3f(*s.points[a-1])
             glVertex3f(*s.points[b-1])
             glEnd()
+
+        if s.drawimp:
+            glColor3f(1,1,1)
+            for l in s.imppoints:
+                glBegin(GL_POLYGON)
+                for p in l:
+                    glVertex3f(*p)
+                glEnd()
             
         glFlush()
 
@@ -66,6 +80,7 @@ class Scene:
         elif k==b's': s.lat-=1
         elif k==b't': s.lon+=1
         elif k==b'n': s.lon-=1
+        elif k==b'b': s.drawimp = not s.drawimp
         else: return
         s.lat%=360; s.lon%=360
         glutPostRedisplay()
