@@ -64,7 +64,8 @@ class Implicit:
 #        print(vec_dir, file=stderr)
 #        print("cross_prod = ", file=stderr)
 #        print(cross_prod, file=stderr)
-        return np.linalg.norm(cross_prod)
+        distance = np.linalg.norm(cross_prod)
+        return self.ki * exp(-1 * distance * distance / (self.Ri * self.Ri))
 #        return 0.0
 
 
@@ -230,6 +231,8 @@ class Implicit:
                     points.extend(pts)
                     cubes.extend(cub)
                 env = cubes
+                print("points", file=stderr)
+                print(points, file=stderr)
         print(time()-t, self.ar, file=stderr)
         return points
 
