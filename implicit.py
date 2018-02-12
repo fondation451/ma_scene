@@ -1,16 +1,26 @@
 # Fonctions pour les surfaces implicites
 
 from math import exp,sqrt,fabs
+from numpy import cross
+from numpy.linalg import norm
 
 class Implicit:
-    def __init__(self, points, Ri, ki, iso, eps, step_line, step_cube):
+    def __init__(self, points, lignes, Ri, ki, iso, eps, step_line, step_cube):
         self.points = points
+        self.lignes = lignes
         self.Ri = Ri
         self.ki = ki
         self.iso = iso
         self.eps = eps
         self.step_line = step_line
         self.step_cube = step_cube
+
+    # Calcule le vecteur de P1P2 dont la taille est step_line fois moins grande que le vecteur P1P2
+    def vecteur_dir(self, p1, p2, step_line):
+        x = p2[0] - p1[0]
+        y = p2[1] - p1[1]
+        z = p2[2] - p1[2]
+        return [x/step_line, y/step_line, z/step_line]
 
 
     def dist(self, p1, p2):
@@ -25,10 +35,38 @@ class Implicit:
         return self.ki * exp(-1 * distance * distance / (self.Ri * self.Ri))
 
 
+    def fi_lines(self, i, j, P):
+        p1 = self.points[i]
+        p2 = self.points[j]
+        vec_dir = self.vecteur_dir(p1, p2, 1)
+        p1P = [P[0] - p1[0], P[1] - p1[1], P[2] - p1[2]]
+        cross_prod = cross(p1P, vec_dir)
+        return norm(cross_prod) / norm(vec_dir)
+
+
+    def find_lines_of(self, i):
+        out = []
+        print("i = ")
+        print(i)
+        print("lignes = ")
+        print(self.lignes)
+        for l in self.lignes:
+            if l[0] == i:
+                out.append(l[1])
+
+        return out
+
+
     def f(self, P):
         out = 0
         for i in range(0, len(self.points)):
-            out = out + self.fi(i, P)
+            lines_of_i = self.find_lines_of(i)
+            if lines_of_i == []:
+                out = out + self.fi(i, P)
+            else:
+                print(lines_of_i)
+                for j in lines_of_i:
+                    out = out + self.fi_lines(i, j, P)
         return out
 
 
@@ -38,14 +76,6 @@ class Implicit:
 
     def check(self, P):
         return self.iso - self.f(P) <= self.eps
-
-
-    # Calcule le vecteur de P1P2 dont la taille est step_line fois moins grande que le vecteur P1P2
-    def vecteur_dir(self, p1, p2, step_line):
-        x = p2[0] - p1[0]
-        y = p2[1] - p1[1]
-        z = p2[2] - p1[2]
-        return [x/step_line, y/step_line, z/step_line]
 
 
     def add_vec(self, v1, v2):

@@ -24,7 +24,7 @@ eps = 0.3
 step_line = 100
 step_cube = 0.5
 
-implicit = Implicit(points, Ri, ki, iso, eps, step_line, step_cube)
+implicit = Implicit(points, lignes, Ri, ki, iso, eps, step_line, step_cube)
 print("Points du squelette\n")
 print(points)
 implicit_points = implicit.compute()

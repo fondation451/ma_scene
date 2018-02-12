@@ -12,4 +12,3 @@ def litObj(chemin):
                 face = tuple(tuple(map(lambda x: int(x) if x else 0, p.split("/"))) for p in l[1:])
                 faces.append(face)
     return vec,lig,faces
-                
