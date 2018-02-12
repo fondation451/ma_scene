@@ -12,5 +12,9 @@ J'ai choisi le format OBJ car il est très simple.
 Utilisation:
     python3 main.py modèles/évier.obj
 
-La souris et les touches z,q,s,d permettent de tourner autour du
-modèle.
+La souris permet de tourner autour du modèle.
+Clic-droit ouvre un menu d'option.
+
+L'exécution sur un fichier .obj génère un fichier "last.pts" dans le
+répertoire courant. Donner un fichier .pts en argument évite de
+refaire le calcul de la surface.
