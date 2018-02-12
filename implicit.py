@@ -1,26 +1,45 @@
 # Fonctions pour les surfaces implicites
 
 from math import exp,sqrt,fabs
-from numpy import cross
-from numpy.linalg import norm
+import numpy as np
+from time import time
+from sys import stderr
+from multiprocessing import Pool
+from random import shuffle
+
+# Calcule le vecteur de P1P2 dont la taille est step_line fois moins grande que le vecteur P1P2
+def vecteur_dir(p1, p2, step_line):
+    x = p2[0] - p1[0]
+    y = p2[1] - p1[1]
+    z = p2[2] - p1[2]
+    return [x/step_line, y/step_line, z/step_line]
+
 
 class Implicit:
     def __init__(self, points, lignes, Ri, ki, iso, eps, step_line, step_cube):
         self.points = points
-        self.lignes = lignes
+        self.lignes = []
         self.Ri = Ri
         self.ki = ki
         self.iso = iso
         self.eps = eps
         self.step_line = step_line
         self.step_cube = step_cube
+        self.ar = 0
+        self.inter = {}
 
-    # Calcule le vecteur de P1P2 dont la taille est step_line fois moins grande que le vecteur P1P2
-    def vecteur_dir(self, p1, p2, step_line):
-        x = p2[0] - p1[0]
-        y = p2[1] - p1[1]
-        z = p2[2] - p1[2]
-        return [x/step_line, y/step_line, z/step_line]
+        # Init lignes
+        for l in lignes:
+            i = l[0] - 1
+            j = l[1] - 1
+            a = self.points[i]
+            b = self.points[j]
+            vect_dir = vecteur_dir(a, b, 1)
+            norm_v = np.linalg.norm(vect_dir)
+            vect_dir = [vect_dir[0]/norm_v, vect_dir[1]/norm_v, vect_dir[2]/norm_v]
+            self.lignes.append((a, vect_dir))
+        print("Lignes :", file=stderr)
+        print(len(self.lignes), file=stderr)
 
 
     def dist(self, p1, p2):
@@ -35,38 +54,30 @@ class Implicit:
         return self.ki * exp(-1 * distance * distance / (self.Ri * self.Ri))
 
 
-    def fi_lines(self, i, j, P):
-        p1 = self.points[i]
-        p2 = self.points[j]
-        vec_dir = self.vecteur_dir(p1, p2, 1)
-        p1P = [P[0] - p1[0], P[1] - p1[1], P[2] - p1[2]]
-        cross_prod = cross(p1P, vec_dir)
-        return norm(cross_prod) / norm(vec_dir)
-
-
-    def find_lines_of(self, i):
-        out = []
-        print("i = ")
-        print(i)
-        print("lignes = ")
-        print(self.lignes)
-        for l in self.lignes:
-            if l[0] == i:
-                out.append(l[1])
-
-        return out
+    def fi_lines(self, a, u, P):
+#        print("CALL fi_lines", file=stderr)
+        aP = [P[0] - a[0], P[1] - a[1], P[2] - a[2]]
+#        cross_prod = np.cross(p1P, vec_dir)
+        cross_prod = np.cross(aP, u)
+#        cross_prod = [0.5, 0.5, 0.5]
+#        print("vec_dir = ", file=stderr)
+#        print(vec_dir, file=stderr)
+#        print("cross_prod = ", file=stderr)
+#        print(cross_prod, file=stderr)
+        return np.linalg.norm(cross_prod)
+#        return 0.0
 
 
     def f(self, P):
+#        print("CALL of f", file=stderr)
         out = 0
         for i in range(0, len(self.points)):
-            lines_of_i = self.find_lines_of(i)
-            if lines_of_i == []:
-                out = out + self.fi(i, P)
-            else:
-                print(lines_of_i)
-                for j in lines_of_i:
-                    out = out + self.fi_lines(i, j, P)
+            out = out + self.fi(i, P)
+
+        for l in self.lignes:
+            (a, u) = l
+            out = out + self.fi_lines(a, u, P)
+
         return out
 
 
@@ -82,9 +93,16 @@ class Implicit:
         return [v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]]
 
 
-    # Verifie si la surface implicite s'intersecte avec un segment
     def intersection_line(self, p1, p2):
-        vect_dir = self.vecteur_dir(p1, p2, self.step_line)
+        p1 = tuple(p1)
+        p2 = tuple(p2)
+        if (p1,p2) in self.inter:
+            return self.inter[(p1,p2)]
+        if (p2,p1) in self.inter:
+            return self.inter[(p2,p1)]
+        self.ar += 1
+        " Verifie si la surface implicite s'intersecte avec un segment "
+        vect_dir = vecteur_dir(p1, p2, self.step_line)
         p_min = []
         p_min_val = 10
         p_curr = p1
@@ -96,13 +114,13 @@ class Implicit:
                     p_min = p_curr
                     p_min_val = tmp
             p_curr = self.add_vec(p_curr, vect_dir)
-
+        self.inter[(p1,p2)] = p_min
         return p_min
 
 
-    # Renvoie tous les points qui s'intersectent avec un cube
-    # c est le coin en haut à gauche en premier plan
     def intersection_cube(self, c):
+        """ Renvoie tous les points qui s'intersectent avec un cube
+            c est le coin en haut à gauche en premier plan """
         out = []
         x = self.step_cube # longueur du cote du cube
         p1 = c
@@ -125,23 +143,22 @@ class Implicit:
         P10 = self.intersection_line(p5, p8)
         P11 = self.intersection_line(p6, p7)
         P12 = self.intersection_line(p7, p8)
-        if P1 != []: out.append(P1)
-        if P2 != []: out.append(P2)
-        if P3 != []: out.append(P3)
-        if P4 != []: out.append(P4)
-        if P5 != []: out.append(P5)
-        if P6 != []: out.append(P6)
-        if P7 != []: out.append(P7)
-        if P8 != []: out.append(P8)
-        if P9 != []: out.append(P9)
-        if P10 != []: out.append(P10)
-        if P11 != []: out.append(P11)
-        if P12 != []: out.append(P12)
+        if P1 != []: out.append((1,P1))
+        if P2 != []: out.append((2,P2))
+        if P3 != []: out.append((3,P3))
+        if P4 != []: out.append((4,P4))
+        if P5 != []: out.append((5,P5))
+        if P6 != []: out.append((6,P6))
+        if P7 != []: out.append((7,P7))
+        if P8 != []: out.append((8,P8))
+        if P9 != []: out.append((9,P9))
+        if P10 != []: out.append((10,P10))
+        if P11 != []: out.append((11,P11))
+        if P12 != []: out.append((12,P12))
         return out
 
-
     def compute_enveloppe(self):
-        mult = 3
+        marge = 1.5 * self.Ri
         x_min = 0
         x_max = 0
         y_min = 0
@@ -155,46 +172,87 @@ class Implicit:
             if p[1] > y_max: y_max = p[1]
             if p[2] < z_min: z_min = p[2]
             if p[2] > z_max: z_max = p[2]
-        longueur = (x_max - x_min) * mult
-        largeur = (y_max - y_min) * mult
-        profondeur = (z_max - z_min) * mult
-        c = [x_min * mult, y_min * mult, z_min * mult]
+        longueur = x_max - x_min + 2 * marge
+        largeur  = y_max - y_min + 2 * marge
+        profondeur = z_max - z_min + 2 * marge
+        c = [x_min - marge, y_min - marge, z_min - marge]
         # cote de l'enveloppe parallélépipédique en bas à gauche premier plan
         return (c, longueur, largeur, profondeur)
 
 
-    # Calcule la surface implicite
-    def compute(self):
+    def compute_cube2(self, e):
+        print("CALL compute_cube2", file=stderr)
+        return self.compute_cube(*e)
+    def compute_cube(self, c_env, lon_env, lar_env, pro_env):
+        print("CALL compute_cube", file=stderr)
+        " Calcule la surface implicite dans le pavé donné en entrée "
         out_points = []
-        out_face = []
+        out_cubes = []
         ind_point = 0
-        (c_env, lon_env, lar_env, pro_env) = self.compute_enveloppe()
 
         step_lon = lon_env / self.step_cube
         step_lar = lar_env / self.step_cube
         step_pro = pro_env / self.step_cube
-        w=0
         for i in range(0, int(step_lon) + 1):
+            print("i = ", file=stderr)
+            print(i, file=stderr)
             c_x = c_env[0] + self.step_cube * i
             for j in range(0, int(step_lar) + 1):
+                print("j = ", file=stderr)
+                print(j, file=stderr)
                 c_y = c_env[1] + self.step_cube * j
                 for k in range(0, int(step_pro) + 1):
+                    print("k = ", file=stderr)
+                    print(k, file=stderr)
 #                    if (i+j+k)%2: continue
                     c_z = c_env[2] + self.step_cube * k
                     new_points = self.intersection_cube([c_x, c_y, c_z])
                     if new_points:
+                        out_cubes.append(([c_x, c_y, c_z], self.step_cube,
+                                          self.step_cube, self.step_cube))
                         out_points.append(self.points_to_poly(new_points))
-        return out_points
+        return out_cubes, out_points
 
-    # Ordonne une liste de sommets pour en faire un polygône
-    # Semble fonctionner souvent mais il reste qq trous dans la surface
+    def compute(self):
+        print("CALL compute", file=stderr)
+        t = time()
+        env = [self.compute_enveloppe()]
+        print("env", file=stderr)
+        print(env, file=stderr)
+        with Pool(8) as pool:
+            for _ in range(2):
+                cubes, points = [], []
+                print("env", file=stderr)
+                print(env, file=stderr)
+                self.step_cube = env[0][1]/3
+                res = pool.map(self.compute_cube2, env)
+                for cub,pts in res:
+                    points.extend(pts)
+                    cubes.extend(cub)
+                env = cubes
+        print(time()-t, self.ar, file=stderr)
+        return points
+
     def points_to_poly(self, l):
-        if len(l)<4: return l
+        """ Ordonne une liste de sommets pour en faire un polygône
+            Semble fonctionner souvent mais il reste qq trous dans la surface """
+        faces = [(1,4,6,2),(1,5,9,3),(2,8,10,3),(4,7,11,5),(6,8,12,7),(9,11,12,10)]
+        adjacent = [[], [4, 6, 2, 5, 9, 3], [1, 4, 6, 8, 10, 3], [1, 5, 9, 2, 8, 10],
+                   [1, 6, 2, 7, 11, 5], [1, 9, 3, 4, 7, 11], [1, 4, 2, 8, 12, 7],
+                   [4, 11, 5, 6, 8, 12], [2, 10, 3, 6, 12, 7], [1, 5, 3, 11, 12, 10],
+                   [2, 8, 3, 9, 11, 12], [4, 7, 5, 9, 12, 10], [6, 8, 7, 9, 11, 10]]
+        if len(l)<=3:
+        #shuffle(l)
+            return [p for f,p in l] # inutile d'ordonner les sommets d'un triangle
         l2 = [l[0]]
         l.remove(l[0])
         while l:
-            point = l2[-1]
-            nearest = min(l, key = lambda p:self.dist(p,point))
+            face, point = l2[-1]
+            try:
+                nearest = min(filter(lambda f: f[0] in adjacent[face], l),
+                              key = lambda p: self.dist(p[1],point))
+            except:
+                return []
             l.remove(nearest)
             l2.append(nearest)
-        return l2
+        return [p for f,p in l2]

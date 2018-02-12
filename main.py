@@ -1,10 +1,10 @@
 from sys import argv
+from os import popen
 from OpenGL.GLUT import *
+from pickle import load
 # je me le permets car les commandes sont préfixées par glut
 
-from obj import litObj
 from scene import Scene
-from implicit import Implicit
 
 if len(argv)==1:
     argv.append("modèles/cube.obj")
@@ -12,28 +12,13 @@ if len(argv)!=2:
     print("Utilisation: ma_scene.py scene.obj")
     exit(1)
 
-points,lignes,faces = litObj(argv[1])
-
-# Traitement des surfaces implicites
-####
-
-Ri = 1.0
-ki = 10.0
-iso = 3
-eps = 0.3
-step_line = 100
-step_cube = 0.5
-
-implicit = Implicit(points, lignes, Ri, ki, iso, eps, step_line, step_cube)
-print("Points du squelette\n")
+with popen("pypy3 calc.py "+argv[1]) as f:
+    points,lines,faces = load(f.buffer)
+    implicit_points = load(f.buffer)
+#exit()
 print(points)
-implicit_points = implicit.compute()
-
-print("Points de la surface implicite\n")
-#print(implicit_points)
-
-####
-
+print(lines)
+print(len(implicit_points))
 
 glutInit(1,"")
 glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH)
@@ -41,7 +26,7 @@ glutInitWindowPosition(200,200)
 glutInitWindowSize(500,500)
 glutCreateWindow(b"Ma scene")
 
-scene = Scene(points,lignes,faces,implicit_points)
+scene = Scene(points,lines,faces,implicit_points)
 scene.associeFonctions()
 
 glutMainLoop()
