@@ -9,14 +9,13 @@ points,lines,faces = litObj(argv[1])
 # Traitement des surfaces implicites
 ####
 
-Ri = 1.0
+Ri = 1
 ki = 10.0
 iso = 3
 eps = 0.3
-step_line = 100
 step_cube = 1
 
-implicit = Implicit(points, lines, Ri, ki, iso, eps, step_line, step_cube)
+implicit = Implicit(points, lines, Ri, ki, iso, eps, step_cube)
 #iprint("Points du squelette\n")
 #print(points)
 implicit_points = implicit.compute()

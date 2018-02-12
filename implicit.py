@@ -16,14 +16,13 @@ def vecteur_dir(p1, p2, step_line):
 
 
 class Implicit:
-    def __init__(self, points, lignes, Ri, ki, iso, eps, step_line, step_cube):
+    def __init__(self, points, lignes, Ri, ki, iso, eps, step_cube):
         self.points = points
         self.lignes = []
         self.Ri = Ri
         self.ki = ki
         self.iso = iso
         self.eps = eps
-        self.step_line = step_line
         self.step_cube = step_cube
         self.ar = 0
         self.inter = {}
@@ -68,7 +67,6 @@ class Implicit:
         return self.ki * exp(-1 * distance * distance / (self.Ri * self.Ri))
 #        return 0.0
 
-
     def f(self, P):
 #        print("CALL of f", file=stderr)
         out = 0
@@ -95,28 +93,27 @@ class Implicit:
 
 
     def intersection_line(self, p1, p2):
+        " Verifie si la surface implicite s'intersecte avec un segment "
         p1 = tuple(p1)
         p2 = tuple(p2)
         if (p1,p2) in self.inter:
             return self.inter[(p1,p2)]
         if (p2,p1) in self.inter:
             return self.inter[(p2,p1)]
-        self.ar += 1
-        " Verifie si la surface implicite s'intersecte avec un segment "
-        vect_dir = vecteur_dir(p1, p2, self.step_line)
-        p_min = []
-        p_min_val = 10
-        p_curr = p1
-        for i in range(0, int(self.step_line) + 1):
-            tmp = self.fiso(p_curr)
-#            print(p_curr,tmp)
-            if tmp <= self.eps:
-                if p_min == [] or p_min_val > tmp:
-                    p_min = p_curr
-                    p_min_val = tmp
-            p_curr = self.add_vec(p_curr, vect_dir)
-        self.inter[(p1,p2)] = p_min
-        return p_min
+        v1 = self.f(p1)
+        v2 = self.f(p2)
+        c1 = v1>self.iso
+        c2 = v2>self.iso
+        if not (c1 ^ c2): return []
+        l = self.dist(p1,p2)
+        if c2:
+            d = (self.iso-v1)/(v2-v1)
+            r = self.add_vec(p1,vecteur_dir(p1,p2,1/(l*d)))
+        else:
+            d = (self.iso-v2)/(v1-v2)
+            r = self.add_vec(p2,vecteur_dir(p2,p1,1/(l*d)))
+        self.inter[(p1,p2)] = r
+        return r
 
 
     def intersection_cube(self, c):
@@ -180,12 +177,8 @@ class Implicit:
         # cote de l'enveloppe parallélépipédique en bas à gauche premier plan
         return (c, longueur, largeur, profondeur)
 
-
-    def compute_cube2(self, e):
-        print("CALL compute_cube2", file=stderr)
-        return self.compute_cube(*e)
-    def compute_cube(self, c_env, lon_env, lar_env, pro_env):
-        print("CALL compute_cube", file=stderr)
+    def compute_cube(self, arg):
+        c_env, lon_env, lar_env, pro_env = arg
         " Calcule la surface implicite dans le pavé donné en entrée "
         out_points = []
         out_cubes = []
@@ -194,19 +187,16 @@ class Implicit:
         step_lon = lon_env / self.step_cube
         step_lar = lar_env / self.step_cube
         step_pro = pro_env / self.step_cube
-        for i in range(0, int(step_lon) + 1):
-            print("i = ", file=stderr)
-            print(i, file=stderr)
+        num = int(step_lon)*int(step_lar)*int(step_pro)
+        cub = 0
+        for i in range(0, int(step_lon)):
             c_x = c_env[0] + self.step_cube * i
-            for j in range(0, int(step_lar) + 1):
-                print("j = ", file=stderr)
-                print(j, file=stderr)
+            for j in range(0, int(step_lar)):
                 c_y = c_env[1] + self.step_cube * j
-                for k in range(0, int(step_pro) + 1):
-                    print("k = ", file=stderr)
-                    print(k, file=stderr)
-#                    if (i+j+k)%2: continue
+                for k in range(0, int(step_pro)):
+                    cub += 1
                     c_z = c_env[2] + self.step_cube * k
+                    print("\r",cub,"/",num,"  ",end="",file=stderr)
                     new_points = self.intersection_cube([c_x, c_y, c_z])
                     if new_points:
                         out_cubes.append(([c_x, c_y, c_z], self.step_cube,
@@ -215,24 +205,24 @@ class Implicit:
         return out_cubes, out_points
 
     def compute(self):
-        print("CALL compute", file=stderr)
+#        print("CALL compute", file=stderr)
         t = time()
         env = [self.compute_enveloppe()]
-        print("env", file=stderr)
-        print(env, file=stderr)
-        with Pool(8) as pool:
-            for _ in range(2):
+#        print("env", file=stderr)
+#        print(env, file=stderr)
+        with Pool(6) as pool:
+            for _ in range(1):
                 cubes, points = [], []
-                print("env", file=stderr)
-                print(env, file=stderr)
-                self.step_cube = env[0][1]/3
-                res = pool.map(self.compute_cube2, env)
+ #               print("env", file=stderr)
+ #               print(env, file=stderr)
+                self.step_cube = env[0][1]/20
+                res = pool.map(self.compute_cube, env)
                 for cub,pts in res:
                     points.extend(pts)
                     cubes.extend(cub)
                 env = cubes
-                print("points", file=stderr)
-                print(points, file=stderr)
+ #               print("points", file=stderr)
+ #               print(points, file=stderr)
         print(time()-t, self.ar, file=stderr)
         return points
 
