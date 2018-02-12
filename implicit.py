@@ -1,6 +1,6 @@
 # Fonctions pour les surfaces implicites
 
-from math import exp,sqrt,fabs
+from math import exp,sqrt,fabs,pi,cos,sin
 from time import time
 from sys import stderr
 from multiprocessing import Pool
@@ -185,22 +185,17 @@ class Implicit:
         print(time()-t, self.ar, file=stderr)
         return points
 
-    def normal_at(self, p):
-        dx,dy,dz = .01,.01,.01
-        px,py,pz = p
-        m, pm = self.f(p), p
-        for i in range(-10,11):
-            for j in range(-10,11):
-                for k in range(-10,11):
-                    if (i,j,k) == (0,0,0): continue
-                    d = 1/(i*i+j*j+k*k)**.5
-                    pn = (px+i*dx*d,py+j*dy*d,pz+k*dz*d)
-                    v = self.f(pn)
-                    if v>m:
-                        pm = pn
-                        m = v
-        return self.add_vec(p,self.vecteur_dir(p,pm,0.1))
-                    
+    def normal_at(self, point):
+        d2r = 2*pi/360
+        l = 0.01
+        m, pm = 100, None
+        for i in range(0,360,30):
+            for j in range(0,360,30):
+                pn = (cos(i*d2r)*cos(j*d2r),sin(i*d2r)*cos(j*d2r),sin(j*d2r))
+                v = self.f(self.add_vec(point,(pn[0]*l,pn[1]*l,pn[2]*l)))
+                if v<m: m, pm = v, pn
+        return pm
+    
     def points_to_poly(self, l):
         """ Ordonne une liste de sommets pour en faire un polygône
             Semble fonctionner souvent mais il reste qq trous dans la surface """

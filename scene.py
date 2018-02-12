@@ -20,17 +20,15 @@ class Scene:
         s.light = True
         s.createMenu()
         glEnable(GL_DEPTH_TEST)
-        glEnable(GL_LIGHTING) #j'ai voulu mettre de la lumière pour améliorer le contraste
-        glEnable(GL_LIGHT0)  # mais il faut définir les normales pour que ça marche
-        glLightfv(GL_LIGHT0, GL_SPECULAR, (255,0,0))
-        #glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, (255,255,255))
+        glEnable(GL_LIGHTING)
+        glEnable(GL_LIGHT0)
         glClearColor(0,0,0,0)
         glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
         s.changePerspective()
 
     def createMenu(s):
         lightMenu = glutCreateMenu(s.menu)
-        glutAddMenuEntry("Désactiver", 40)
+        glutAddMenuEntry("Désactiver".encode("Latin9"), 40)
         glutAddMenuEntry("Activer", 41)
         modeMenu = glutCreateMenu(s.menu)
         glutAddMenuEntry("Squelette", 10)
