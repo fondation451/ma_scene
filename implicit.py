@@ -173,18 +173,34 @@ class Implicit:
     def compute(self):
         t = time()
         env = [self.compute_enveloppe()]
-        with Pool(8) as pool:
+        with Pool(6) as pool:
             for _ in range(2):
                 cubes, points = [], []
                 self.step_cube = env[0][1]/3
                 res = pool.map(self.compute_cube2, env)
                 for cub,pts in res:
-                    points.extend(pts)
+                    points.extend([[(p,self.normal_at(p)) for p in l]for l in pts])
                     cubes.extend(cub)
                 env = cubes
         print(time()-t, self.ar, file=stderr)
         return points
-    
+
+    def normal_at(self, p):
+        dx,dy,dz = .01,.01,.01
+        px,py,pz = p
+        m, pm = self.f(p), p
+        for i in range(-10,11):
+            for j in range(-10,11):
+                for k in range(-10,11):
+                    if (i,j,k) == (0,0,0): continue
+                    d = 1/(i*i+j*j+k*k)**.5
+                    pn = (px+i*dx*d,py+j*dy*d,pz+k*dz*d)
+                    v = self.f(pn)
+                    if v>m:
+                        pm = pn
+                        m = v
+        return self.add_vec(p,self.vecteur_dir(p,pm,0.1))
+                    
     def points_to_poly(self, l):
         """ Ordonne une liste de sommets pour en faire un polygône
             Semble fonctionner souvent mais il reste qq trous dans la surface """

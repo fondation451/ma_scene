@@ -17,17 +17,21 @@ class Scene:
         s.imppoints = imppoints
         s.drawimp = True
         s.persp = True
+        s.light = True
         s.createMenu()
         glEnable(GL_DEPTH_TEST)
-        # glEnable(GL_LIGHTING) j'ai voulu mettre de la lumière pour améliorer le contraste
-        # glEnable(GL_LIGHT0)   mais il faut définir les normales pour que ça marche
-        # glLightfv(GL_LIGHT0, GL_DIFFUSE, (255,0,0))
-        # glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, (255,255,255))
+        glEnable(GL_LIGHTING) #j'ai voulu mettre de la lumière pour améliorer le contraste
+        glEnable(GL_LIGHT0)  # mais il faut définir les normales pour que ça marche
+        glLightfv(GL_LIGHT0, GL_SPECULAR, (255,0,0))
+        #glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, (255,255,255))
         glClearColor(0,0,0,0)
         glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
         s.changePerspective()
 
     def createMenu(s):
+        lightMenu = glutCreateMenu(s.menu)
+        glutAddMenuEntry("Désactiver", 40)
+        glutAddMenuEntry("Activer", 41)
         modeMenu = glutCreateMenu(s.menu)
         glutAddMenuEntry("Squelette", 10)
         glutAddMenuEntry("Surface", 11)
@@ -41,6 +45,7 @@ class Scene:
         glutAddSubMenu("Mode",modeMenu)
         glutAddSubMenu("Projection",perspMenu)
         glutAddSubMenu("Polygônes".encode("Latin9"),polyMenu)
+        glutAddSubMenu("Lumière".encode("Latin9"),lightMenu)
         glutAddMenuEntry("Quitter",1)
 
     def associeFonctions(s):
@@ -84,7 +89,8 @@ class Scene:
                 #glColor3f(random(),random(),random())
                 glBegin(GL_POLYGON)
                 for p in l:
-                    glVertex3f(*p)
+                    glNormal3f(*p[1])
+                    glVertex3f(*p[0])
                 glEnd()
             
         glFlush()
@@ -98,6 +104,8 @@ class Scene:
         elif p in (30,31):
             s.persp = p-30
             s.changePerspective()
+        elif p in (40,41):
+            glEnable(GL_LIGHTING) if p==41 else glDisable(GL_LIGHTING)
         return 0
         
     def reshape(s,w,h):
