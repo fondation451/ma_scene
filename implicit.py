@@ -1,6 +1,6 @@
 # Fonctions pour les surfaces implicites
 
-from math import exp,sqrt,fabs
+from math import exp,sqrt,fabs,pi,cos,sin
 import numpy as np
 from time import time
 from sys import stderr
@@ -218,7 +218,7 @@ class Implicit:
                 self.step_cube = env[0][1]/20
                 res = pool.map(self.compute_cube, env)
                 for cub,pts in res:
-                    points.extend(pts)
+                    points.extend([[(p,self.normal_at(p)) for p in l]for l in pts])
                     cubes.extend(cub)
                 env = cubes
  #               print("points", file=stderr)
@@ -226,6 +226,17 @@ class Implicit:
         print(time()-t, self.ar, file=stderr)
         return points
 
+    def normal_at(self, point):
+        d2r = 2*pi/360
+        l = 0.01
+        m, pm = 100, None
+        for i in range(0,360,30):
+            for j in range(0,360,30):
+                pn = (cos(i*d2r)*cos(j*d2r),sin(i*d2r)*cos(j*d2r),sin(j*d2r))
+                v = self.f(self.add_vec(point,(pn[0]*l,pn[1]*l,pn[2]*l)))
+                if v<m: m, pm = v, pn
+        return pm
+    
     def points_to_poly(self, l):
         """ Ordonne une liste de sommets pour en faire un polygône
             Semble fonctionner souvent mais il reste qq trous dans la surface """
