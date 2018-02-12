@@ -40,7 +40,7 @@ class Scene:
         menuId = glutCreateMenu(s.menu)
         glutAddSubMenu("Mode",modeMenu)
         glutAddSubMenu("Projection",perspMenu)
-        glutAddSubMenu("Polygônes".encode("Latin9"),polyMenu)
+        glutAddSubMenu("Polygones".encode("Latin9"),polyMenu)
         glutAddMenuEntry("Quitter",1)
 
     def associeFonctions(s):
