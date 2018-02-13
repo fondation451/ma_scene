@@ -1,7 +1,6 @@
 # Fonctions pour les surfaces implicites
 
 from math import exp,sqrt,fabs,pi,cos,sin
-import numpy as np
 from time import time
 from sys import stderr
 from multiprocessing import Pool
@@ -16,15 +15,14 @@ def vecteur_dir(p1, p2, step_line):
 
 
 class Implicit:
-    def __init__(self, points, lignes, Ri, ki, iso, eps, step_cube):
+    def __init__(self, points, lignes, Ri, ki, iso, eps, nb_cubes):
         self.points = points
         self.lignes = []
         self.Ri = Ri
         self.ki = ki
         self.iso = iso
         self.eps = eps
-        self.step_cube = step_cube
-        self.ar = 0
+        self.nb_cubes = nb_cubes
         self.inter = {}
 
         # Init lignes
@@ -34,7 +32,7 @@ class Implicit:
             a = self.points[i]
             b = self.points[j]
             vect_dir = vecteur_dir(a, b, 1)
-            norm_v = np.linalg.norm(vect_dir)
+            norm_v = self.dist((0,0,0),vect_dir)
             vect_dir = [vect_dir[0]/norm_v, vect_dir[1]/norm_v, vect_dir[2]/norm_v]
             self.lignes.append((a, vect_dir))
         print("Lignes :", file=stderr)
@@ -55,15 +53,16 @@ class Implicit:
 
     def fi_lines(self, a, u, P):
 #        print("CALL fi_lines", file=stderr)
-        aP = [P[0] - a[0], P[1] - a[1], P[2] - a[2]]
+        aP = (P[0] - a[0], P[1] - a[1], P[2] - a[2])
 #        cross_prod = np.cross(p1P, vec_dir)
-        cross_prod = np.cross(aP, u)
+        #cross_prod = np.cross(aP, u)
+        cp = (aP[1]*u[2]-aP[2]*u[1],aP[2]*u[0]-aP[0]*u[2],aP[0]*u[1]-aP[1]*u[0])
 #        cross_prod = [0.5, 0.5, 0.5]
 #        print("vec_dir = ", file=stderr)
 #        print(vec_dir, file=stderr)
 #        print("cross_prod = ", file=stderr)
 #        print(cross_prod, file=stderr)
-        distance = np.linalg.norm(cross_prod)
+        distance = (cp[0]**2+cp[1]**2+cp[2]**2)**.5
         return self.ki * exp(-1 * distance * distance / (self.Ri * self.Ri))
 #        return 0.0
 
@@ -90,7 +89,7 @@ class Implicit:
 
     def add_vec(self, v1, v2):
         return [v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]]
-
+    
 
     def intersection_line(self, p1, p2):
         " Verifie si la surface implicite s'intersecte avec un segment "
@@ -100,21 +99,24 @@ class Implicit:
             return self.inter[(p1,p2)]
         if (p2,p1) in self.inter:
             return self.inter[(p2,p1)]
+        l = (p1,p2)
         v1 = self.f(p1)
         v2 = self.f(p2)
         c1 = v1>self.iso
         c2 = v2>self.iso
         if not (c1 ^ c2): return []
-        l = self.dist(p1,p2)
-        if c2:
-            d = (self.iso-v1)/(v2-v1)
-            r = self.add_vec(p1,vecteur_dir(p1,p2,1/(l*d)))
-        else:
+        if c2: p1,p2,v1,v2=p2,p1,v2,v1
+        for _ in range(5):
             d = (self.iso-v2)/(v1-v2)
-            r = self.add_vec(p2,vecteur_dir(p2,p1,1/(l*d)))
-        self.inter[(p1,p2)] = r
-        return r
-
+            p = self.add_vec(p2,vecteur_dir(p2,p1,1/d))
+            v = self.f(p)
+            if v>self.iso:
+                p1,v1=p,v
+            else:
+                p2,v1=p,v
+        self.inter[l] = p
+        return p
+ 
 
     def intersection_cube(self, c):
         """ Renvoie tous les points qui s'intersectent avec un cube
@@ -156,7 +158,7 @@ class Implicit:
         return out
 
     def compute_enveloppe(self):
-        marge = 1.5 * self.Ri
+        marge = 3 * self.Ri
         x_min = 0
         x_max = 0
         y_min = 0
@@ -187,51 +189,53 @@ class Implicit:
         step_lon = lon_env / self.step_cube
         step_lar = lar_env / self.step_cube
         step_pro = pro_env / self.step_cube
-        num = int(step_lon)*int(step_lar)*int(step_pro)
+        num = int(step_lon+1)*int(step_lar+1)*int(step_pro+1)
         cub = 0
-        for i in range(0, int(step_lon)):
+        for i in range(0, int(step_lon)+1):
             c_x = c_env[0] + self.step_cube * i
-            for j in range(0, int(step_lar)):
+            for j in range(0, int(step_lar)+1):
                 c_y = c_env[1] + self.step_cube * j
-                for k in range(0, int(step_pro)):
+                print("\r",cub,"/",num,"  ",end="",file=stderr)
+                for k in range(0, int(step_pro)+1):
                     cub += 1
                     c_z = c_env[2] + self.step_cube * k
-                    print("\r",cub,"/",num,"  ",end="",file=stderr)
                     new_points = self.intersection_cube([c_x, c_y, c_z])
                     if new_points:
                         out_cubes.append(([c_x, c_y, c_z], self.step_cube,
                                           self.step_cube, self.step_cube))
                         out_points.append(self.points_to_poly(new_points))
+        print("\r",len(out_cubes),"non-vides sur",cub,"   ",file=stderr)
         return out_cubes, out_points
 
     def compute(self):
-#        print("CALL compute", file=stderr)
+        print("Calcul surface", file=stderr)
         t = time()
         env = [self.compute_enveloppe()]
-#        print("env", file=stderr)
-#        print(env, file=stderr)
-        with Pool(6) as pool:
-            for _ in range(1):
-                cubes, points = [], []
- #               print("env", file=stderr)
- #               print(env, file=stderr)
-                self.step_cube = env[0][1]/20
-                res = pool.map(self.compute_cube, env)
-                for cub,pts in res:
-                    points.extend([[(p,self.normal_at(p)) for p in l]for l in pts])
-                    cubes.extend(cub)
-                env = cubes
- #               print("points", file=stderr)
- #               print(points, file=stderr)
-        print(time()-t, self.ar, file=stderr)
-        return points
-
+        cubes, points = [], []
+        self.step_cube = env[0][1]/self.nb_cubes
+        res = map(self.compute_cube, env)
+        for cub,pts in res:
+            points.extend(pts)
+            cubes.extend(cub)
+        env = cubes
+        print("",round(time()-t,3),"s", file=stderr)
+        print("Calcul normales", file=stderr)
+        t=time()
+        num = len(points)
+        norm = [None]*num
+        for i,l in enumerate(points):
+            if not i%43: print("\r",i,"/",num,"  ",end="",file=stderr)
+            #norm[i] = [(p,p) for p in l] # pour passer le calcul
+            norm[i] = [(p,self.normal_at(p)) for p in l]
+        print("\r",round(time()-t,3),"s     ", file=stderr)
+        return norm
+    
     def normal_at(self, point):
         d2r = 2*pi/360
         l = 0.01
         m, pm = 100, None
-        for i in range(0,360,30):
-            for j in range(0,360,30):
+        for i in range(0,360,20):
+            for j in range(0,360,20):
                 pn = (cos(i*d2r)*cos(j*d2r),sin(i*d2r)*cos(j*d2r),sin(j*d2r))
                 v = self.f(self.add_vec(point,(pn[0]*l,pn[1]*l,pn[2]*l)))
                 if v<m: m, pm = v, pn

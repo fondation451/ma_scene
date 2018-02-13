@@ -17,7 +17,7 @@ if argv[1].endswith(".pts"):
         points,lines,faces = load(f)
         implicit_points = load(f)
 else:
-    with popen("python3 calc.py "+argv[1]+" | tee last.pts") as f:
+    with popen("pypy3 calc.py "+argv[1]+" | tee last.pts") as f:
         points,lines,faces = load(f.buffer)
         implicit_points = load(f.buffer)
 
