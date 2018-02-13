@@ -231,8 +231,14 @@ class Implicit:
         d2r = 2*pi/360
         l = 0.01
         m, pm = 100, None
-        for i in range(0,360,20):
-            for j in range(0,360,20):
+        for i in range(0,360,60):
+            for j in range(0,360,60):
+                pn = (cos(i*d2r)*cos(j*d2r),sin(i*d2r)*cos(j*d2r),sin(j*d2r))
+                v = self.f(self.add_vec(point,(pn[0]*l,pn[1]*l,pn[2]*l)))
+                if v<m: m, im, jm = v, i, j
+        m = 100
+        for i in range(im-30,im+30,9):
+            for j in range(jm-30,jm+30,9):
                 pn = (cos(i*d2r)*cos(j*d2r),sin(i*d2r)*cos(j*d2r),sin(j*d2r))
                 v = self.f(self.add_vec(point,(pn[0]*l,pn[1]*l,pn[2]*l)))
                 if v<m: m, pm = v, pn
