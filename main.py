@@ -6,7 +6,7 @@ from pickle import load
 from scene import Scene
 
 if len(argv)==1:
-    argv.append("modèles/cube.obj")
+    argv.append("modeles/cube.obj")
 if len(argv)!=2:
     print("Utilisation: ma_scene.py scene.obj")
     exit(1)

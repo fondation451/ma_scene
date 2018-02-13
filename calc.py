@@ -4,14 +4,11 @@ from sys import argv, stdout,stderr
 from pickle import dump
 
 Ri = 0.1
-#ki = 10.0
-ki = 2.0
-#iso = 3
-iso = 1
-eps = 0.3
+ki = 10.0
+iso = 3
 nb_cubes = 40 # cubes par côté
 
-points,lignes,faces,Rip,kip = litObj(argv[1], Ri, ki)
+points,lignes,faces,Rip,kip,coef = litObj(argv[1], Ri, ki)
 
 #print(ki_points, file=stderr)
 #print(Ri_points, file=stderr)
@@ -20,8 +17,8 @@ points,lignes,faces,Rip,kip = litObj(argv[1], Ri, ki)
 
 # Traitement des surfaces implicites
 ####
+implicit = Implicit(points, lignes, faces, Rip, kip, coef, iso, nb_cubes)
 
-implicit = Implicit(points, lignes, faces, Rip, kip, iso, eps, nb_cubes)
 #iprint("Points du squelette\n")
 #print(points)
 implicit_points = implicit.compute()

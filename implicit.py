@@ -15,7 +15,7 @@ def vecteur_dir(p1, p2, step_line):
 
 
 class Implicit:
-    def __init__(self, points, lignes, faces, Rip, kip, iso, eps, nb_cubes):
+    def __init__(self, points, lignes, faces, Rip, kip, coef, iso, nb_cubes):
         self.points = points
         self.lignes = []
         self.faces = faces
@@ -23,8 +23,8 @@ class Implicit:
         self.kip = kip
         self.Ril = []
         self.kil = []
+        self.coef = coef
         self.iso = iso
-        self.eps = eps
         self.nb_cubes = nb_cubes
         self.inter = {}
 
@@ -61,7 +61,8 @@ class Implicit:
         distance = self.dist(self.points[i], P)
         Ri = self.Rip[i]
         ki = self.kip[i]
-        return ki * exp(-1 * distance * distance / (Ri * Ri))
+        coef = self.coef[i]
+        return coef * ki * exp(-1 * distance * distance / (Ri * Ri))
 
     def fi_lines(self, i, p):
         " Valeur du champ du segment [ab] de droite u en p "
@@ -121,15 +122,11 @@ class Implicit:
     def fiso(self, P):
         return fabs(self.f(P) - self.iso)
 
-
-    def check(self, P):
-        return self.iso - self.f(P) <= self.eps
-
-
+    
     def add_vec(self, v1, v2):
         return [v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]]
-    
 
+    
     def intersection_line(self, p1, p2):
         " Verifie si la surface implicite s'intersecte avec un segment "
         p1 = tuple(p1)

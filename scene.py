@@ -107,20 +107,20 @@ class Scene:
         # on tourne selon un compromis entre l'axe x et l'axe z pour lever la caméra
         glRotate(s.lat,cos(d2r*s.lon),0,sin(d2r*s.lon)) #
 
-        glColor3f(1,0,0)
-        for i in s.faces:
-            glBegin(GL_POLYGON)
-            for j in i:
-                glVertex3f(*s.points[j[0]-1])
-            glEnd()
+        if s.mode==Mode.squelette:
+            glColor3f(1,0,0)
+            for i in s.faces:
+                glBegin(GL_POLYGON)
+                for j in i:
+                    glVertex3f(*s.points[j[0]-1])
+                glEnd()
 
-        glColor3f(.8,.8,0)
-        for a,b in s.lignes:
-            glBegin(GL_LINES)
-            glVertex3f(*s.points[a-1])
-            glVertex3f(*s.points[b-1])
-            glEnd()
-
+            glColor3f(.8,.8,0)
+            for a,b in s.lignes:
+                glBegin(GL_LINES)
+                glVertex3f(*s.points[a-1])
+                glVertex3f(*s.points[b-1])
+                glEnd()
         if s.mode>Mode.squelette:
             glColor3f(1,1,1)
             for l in s.imppoints:
