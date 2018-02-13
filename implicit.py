@@ -34,7 +34,7 @@ class Implicit:
             vect_dir = vecteur_dir(a, b, 1)
             norm_v = self.dist((0,0,0),vect_dir)
             vect_dir = [vect_dir[0]/norm_v, vect_dir[1]/norm_v, vect_dir[2]/norm_v]
-            self.lignes.append((a, vect_dir))
+            self.lignes.append((a, b, vect_dir))
         print("Lignes :", file=stderr)
         print(len(self.lignes), file=stderr)
 
@@ -50,31 +50,28 @@ class Implicit:
         distance = self.dist(self.points[i], P)
         return self.ki * exp(-1 * distance * distance / (self.Ri * self.Ri))
 
-
-    def fi_lines(self, a, u, P):
-#        print("CALL fi_lines", file=stderr)
-        aP = (P[0] - a[0], P[1] - a[1], P[2] - a[2])
-#        cross_prod = np.cross(p1P, vec_dir)
-        #cross_prod = np.cross(aP, u)
-        cp = (aP[1]*u[2]-aP[2]*u[1],aP[2]*u[0]-aP[0]*u[2],aP[0]*u[1]-aP[1]*u[0])
-#        cross_prod = [0.5, 0.5, 0.5]
-#        print("vec_dir = ", file=stderr)
-#        print(vec_dir, file=stderr)
-#        print("cross_prod = ", file=stderr)
-#        print(cross_prod, file=stderr)
-        distance = (cp[0]**2+cp[1]**2+cp[2]**2)**.5
+    def fi_lines(self, a, b, u, p):
+        " Valeur du champ du segment [ab] de droite u en p "
+        ap = (p[0] - a[0], p[1] - a[1], p[2] - a[2])
+        bp = (p[0] - b[0], p[1] - b[1], p[2] - b[2])
+        uSap = u[0]*ap[0]+u[1]*ap[1]+u[2]*ap[2]
+        uSbp = u[0]*bp[0]+u[1]*bp[1]+u[2]*bp[2]
+        if uSap > 0 and uSbp < 0:
+            cross = (ap[1]*u[2] - ap[2]*u[1],
+                     ap[2]*u[0] - ap[0]*u[2],
+                     ap[0]*u[1] - ap[1]*u[0])
+            distance = sqrt(cross[0]**2+cross[1]**2+cross[2]**2)
+        else:
+            distance = min(self.dist(a,p),self.dist(b,p))
         return self.ki * exp(-1 * distance * distance / (self.Ri * self.Ri))
-#        return 0.0
 
     def f(self, P):
-#        print("CALL of f", file=stderr)
         out = 0
         for i in range(0, len(self.points)):
             out = out + self.fi(i, P)
 
         for l in self.lignes:
-            (a, u) = l
-            out = out + self.fi_lines(a, u, P)
+            out = out + self.fi_lines(*l, P)
 
         return out
 
@@ -234,8 +231,14 @@ class Implicit:
         d2r = 2*pi/360
         l = 0.01
         m, pm = 100, None
-        for i in range(0,360,20):
-            for j in range(0,360,20):
+        for i in range(0,360,60):
+            for j in range(0,360,60):
+                pn = (cos(i*d2r)*cos(j*d2r),sin(i*d2r)*cos(j*d2r),sin(j*d2r))
+                v = self.f(self.add_vec(point,(pn[0]*l,pn[1]*l,pn[2]*l)))
+                if v<m: m, im, jm = v, i, j
+        m = 100
+        for i in range(im-30,im+30,9):
+            for j in range(jm-30,jm+30,9):
                 pn = (cos(i*d2r)*cos(j*d2r),sin(i*d2r)*cos(j*d2r),sin(j*d2r))
                 v = self.f(self.add_vec(point,(pn[0]*l,pn[1]*l,pn[2]*l)))
                 if v<m: m, pm = v, pn
