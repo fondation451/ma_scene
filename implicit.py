@@ -15,11 +15,13 @@ def vecteur_dir(p1, p2, step_line):
 
 
 class Implicit:
-    def __init__(self, points, lignes, Ri, ki, iso, eps, nb_cubes):
+    def __init__(self, points, lignes, Rip, kip, iso, eps, nb_cubes):
         self.points = points
         self.lignes = []
-        self.Ri = Ri
-        self.ki = ki
+        self.Rip = Rip
+        self.kip = kip
+        self.Ril = []
+        self.kil = []
         self.iso = iso
         self.eps = eps
         self.nb_cubes = nb_cubes
@@ -31,10 +33,18 @@ class Implicit:
             j = l[1] - 1
             a = self.points[i]
             b = self.points[j]
+            Ripi = self.Rip[i]
+            kipi = self.kip[i]
+            Ripj = self.Rip[j]
+            kipj = self.kip[j]
+            Riline = (Ripi + Ripj) / 2
+            kiline = (kipi + kipj) / 2
             vect_dir = vecteur_dir(a, b, 1)
             norm_v = self.dist((0,0,0),vect_dir)
             vect_dir = [vect_dir[0]/norm_v, vect_dir[1]/norm_v, vect_dir[2]/norm_v]
             self.lignes.append((a, b, vect_dir))
+            self.Ril.append(Riline)
+            self.kil.append(kiline)
         print("Lignes :", file=stderr)
         print(len(self.lignes), file=stderr)
 
@@ -48,10 +58,13 @@ class Implicit:
 
     def fi(self, i, P):
         distance = self.dist(self.points[i], P)
-        return self.ki * exp(-1 * distance * distance / (self.Ri * self.Ri))
+        Ri = self.Rip[i]
+        ki = self.kip[i]
+        return ki * exp(-1 * distance * distance / (Ri * Ri))
 
-    def fi_lines(self, a, b, u, p):
+    def fi_lines(self, i, p):
         " Valeur du champ du segment [ab] de droite u en p "
+        (a, b, u) = self.lignes[i]
         ap = (p[0] - a[0], p[1] - a[1], p[2] - a[2])
         bp = (p[0] - b[0], p[1] - b[1], p[2] - b[2])
         uSap = u[0]*ap[0]+u[1]*ap[1]+u[2]*ap[2]
@@ -63,15 +76,17 @@ class Implicit:
             distance = sqrt(cross[0]**2+cross[1]**2+cross[2]**2)
         else:
             distance = min(self.dist(a,p),self.dist(b,p))
-        return self.ki * exp(-1 * distance * distance / (self.Ri * self.Ri))
+        Ri = self.Ril[i]
+        ki = self.kil[i]
+        return ki * exp(-1 * distance * distance / (Ri * Ri))
 
     def f(self, P):
         out = 0
         for i in range(0, len(self.points)):
             out = out + self.fi(i, P)
 
-        for l in self.lignes:
-            out = out + self.fi_lines(*l, P)
+        for i in range(0, len(self.lignes)):
+            out = out + self.fi_lines(i, P)
 
         return out
 
@@ -155,7 +170,8 @@ class Implicit:
         return out
 
     def compute_enveloppe(self):
-        marge = 3 * self.Ri
+        Ri = max(self.Rip)
+        marge = 3 * Ri
         x_min = 0
         x_max = 0
         y_min = 0
