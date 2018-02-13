@@ -15,13 +15,14 @@ def vecteur_dir(p1, p2, step_line):
 
 
 class Implicit:
-    def __init__(self, points, lignes, Rip, kip, iso, eps, nb_cubes):
+    def __init__(self, points, lignes, Rip, kip, coef, iso, eps, nb_cubes):
         self.points = points
         self.lignes = []
         self.Rip = Rip
         self.kip = kip
         self.Ril = []
         self.kil = []
+        self.coef = coef
         self.iso = iso
         self.eps = eps
         self.nb_cubes = nb_cubes
@@ -60,7 +61,8 @@ class Implicit:
         distance = self.dist(self.points[i], P)
         Ri = self.Rip[i]
         ki = self.kip[i]
-        return ki * exp(-1 * distance * distance / (Ri * Ri))
+        coef = self.coef[i]
+        return coef * ki * exp(-1 * distance * distance / (Ri * Ri))
 
     def fi_lines(self, i, p):
         " Valeur du champ du segment [ab] de droite u en p "
