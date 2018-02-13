@@ -28,7 +28,7 @@ class Scene:
 
     def createMenu(s):
         lightMenu = glutCreateMenu(s.menu)
-        glutAddMenuEntry("Désactiver".encode("Latin9"), 40)
+        glutAddMenuEntry("Desactiver".encode("Latin9"), 40)
         glutAddMenuEntry("Activer", 41)
         modeMenu = glutCreateMenu(s.menu)
         glutAddMenuEntry("Squelette", 10)
@@ -43,7 +43,7 @@ class Scene:
         glutAddSubMenu("Mode",modeMenu)
         glutAddSubMenu("Projection",perspMenu)
         glutAddSubMenu("Polygones".encode("Latin9"),polyMenu)
-        glutAddSubMenu("Lumière".encode("Latin9"),lightMenu)
+        glutAddSubMenu("Lumiere".encode("Latin9"),lightMenu)
         glutAddMenuEntry("Quitter",1)
 
     def associeFonctions(s):
@@ -54,7 +54,7 @@ class Scene:
         #glutIdleFunc(s.idle)
         glutAttachMenu(GLUT_RIGHT_BUTTON)
         glutKeyboardFunc(s.kbd)
-        
+
     def display(s):
         "Tout l'affichage se fait ici"
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -90,7 +90,7 @@ class Scene:
                     glNormal3f(*p[1])
                     glVertex3f(*p[0])
                 glEnd()
-            
+
         glFlush()
 
     def menu(s,p):
@@ -105,9 +105,9 @@ class Scene:
         elif p in (40,41):
             glEnable(GL_LIGHTING) if p==41 else glDisable(GL_LIGHTING)
         return 0
-        
+
     def reshape(s,w,h):
-        "Fait en sorte que la scène soit carrée et centrée"
+        "Fait en sorte que la scene soit carrée et centree"
         if w<h: glViewport(0,(h-w)//2,w,w)
         else:   glViewport((w-h)//2,0,h,h)
 
@@ -129,7 +129,7 @@ class Scene:
         s.lon += 1
 #        sleep(0.)
         glutPostRedisplay()
-        
+
     def changePerspective(s):
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
