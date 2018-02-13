@@ -15,9 +15,10 @@ def vecteur_dir(p1, p2, step_line):
 
 
 class Implicit:
-    def __init__(self, points, lignes, Rip, kip, iso, eps, nb_cubes):
+    def __init__(self, points, lignes, faces, Rip, kip, iso, eps, nb_cubes):
         self.points = points
         self.lignes = []
+        self.faces = faces
         self.Rip = Rip
         self.kip = kip
         self.Ril = []
@@ -46,7 +47,7 @@ class Implicit:
             self.Ril.append(Riline)
             self.kil.append(kiline)
         print("Lignes :", file=stderr)
-        print(len(self.lignes), file=stderr)
+        print(len(self.faces), file=stderr)
 
 
     def dist(self, p1, p2):
@@ -64,7 +65,10 @@ class Implicit:
 
     def fi_lines(self, i, p):
         " Valeur du champ du segment [ab] de droite u en p "
-        (a, b, u) = self.lignes[i]
+        # désolé j'avais besoin de lignes non indiquées
+        return self.f_line(*self.lignes[i], p, self.Ril[i], self.kil[i])
+
+    def f_line(self, a, b, u, p, Ri, ki):
         ap = (p[0] - a[0], p[1] - a[1], p[2] - a[2])
         bp = (p[0] - b[0], p[1] - b[1], p[2] - b[2])
         uSap = u[0]*ap[0]+u[1]*ap[1]+u[2]*ap[2]
@@ -76,18 +80,41 @@ class Implicit:
             distance = sqrt(cross[0]**2+cross[1]**2+cross[2]**2)
         else:
             distance = min(self.dist(a,p),self.dist(b,p))
-        Ri = self.Ril[i]
-        ki = self.kil[i]
         return ki * exp(-1 * distance * distance / (Ri * Ri))
 
+    def fi_faces(self, i, P):
+        def pv(a,b):
+            return (a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0])
+        def ve(a,b): return (b[0] - a[0], b[1] - a[1], b[2] - a[2])
+        def ps(a,b): return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]
+        def no(a):   return sqrt(ps(a,a))
+        def un(a):
+            n = no(a)
+            return (a[0]/n, a[1]/n, a[2]/n) if n else (0,0,0)
+        f = [p[0] for p in self.faces[i]]
+        for i in range(len(f)):
+            a = self.points[f[i]-1]
+            b = self.points[f[(i+1)%len(f)]-1]
+            c = self.points[f[(i+2)%len(f)]-1]
+            if ps(pv(ve(a,b),pv(ve(a,b),ve(b,c))),ve(b,P)) > 0:
+                return self.f_line(a,b,un(ve(a,b)),P,0.5*self.Rip[f[i]-1],self.kip[f[i]-1])
+        a = self.points[f[0]-1]
+        b = self.points[f[1]-1]
+        c = self.points[f[2]-1]
+        v = un(pv(ve(a,b),ve(b,c)))
+        pb = ve(P,b)
+        mp = pv(pb,v)
+        dist2 = no(pb)**2-no(mp)**2
+        return self.kip[f[0]] * exp(-1 * dist2 / (self.Rip[f[0]]**2))
+    
     def f(self, P):
         out = 0
-        for i in range(0, len(self.points)):
-            out = out + self.fi(i, P)
-
+       # for i in range(0, len(self.points)):
+       #     out = out + self.fi(i, P)
         for i in range(0, len(self.lignes)):
             out = out + self.fi_lines(i, P)
-
+        for i in range(0, len(self.faces)):
+            out = out + self.fi_faces(i, P)
         return out
 
 
@@ -118,14 +145,9 @@ class Implicit:
         c2 = v2>self.iso
         if not (c1 ^ c2): return []
         if c2: p1,p2,v1,v2=p2,p1,v2,v1
-        for _ in range(5):
-            d = (self.iso-v2)/(v1-v2)
-            p = self.add_vec(p2,vecteur_dir(p2,p1,1/d))
-            v = self.f(p)
-            if v>self.iso:
-                p1,v1=p,v
-            else:
-                p2,v1=p,v
+        # le for ici était responsable des divergences
+        d = (self.iso-v2)/(v1-v2)
+        p = self.add_vec(p2,vecteur_dir(p2,p1,1/d))
         self.inter[l] = p
         return p
  
