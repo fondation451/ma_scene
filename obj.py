@@ -13,12 +13,12 @@ def litObj(chemin, Ri, ki):
             if l[0]=="v":
                 vec.append((float(l[1]),float(l[2]),float(l[3])))
                 try:
-                    Rip.append(float(l[7]))
+                    Rip.append(float(l[6]))
                 except IndexError:
                     Rip.append(Ri)
 
                 try:
-                    kip.append(float(l[6]))
+                    kip.append(float(l[7]))
                 except IndexError:
                     kip.append(ki)
 

@@ -19,7 +19,7 @@ d2r = 2*pi/360 #degrés (gl et code) vers radians (python.math)
 class Scene:
     def __init__(s, animation, lignes, faces, dt):
         s.lat = 30             # latitude
-        s.lon = 30             # longitude
+        s.lon = -40             # longitude
         s.xOld, s.yOld = 0, 0  # ancienne position de la souris
         s.animation = animation; s.lignes = lignes; s.faces = faces
         s.time = 0

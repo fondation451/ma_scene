@@ -112,16 +112,17 @@ class Implicit:
         pb = ve(P,b)
         mp = pv(pb,v)
         dist2 = no(pb)**2-no(mp)**2
-        return self.kip[f[0]] * exp(-1 * dist2 / (self.Rip[f[0]]**2))
+        return self.kip[f[0] - 1] * exp(-1 * dist2 / (self.Rip[f[0] - 1]**2))
     
     def f(self, P):
         out = 0
-       # for i in range(0, len(self.points)):
-       #     out = out + self.fi(i, P)
+        for i in range(0, len(self.points)):
+            out = out + self.fi(i, P)
         for i in range(0, len(self.lignes)):
             out = out + self.fi_lines(i, P)
         for i in range(0, len(self.faces)):
             out = out + self.fi_faces(i, P)
+#        print(out, file=stderr)
         return out
 
 
@@ -196,7 +197,7 @@ class Implicit:
 
     def compute_enveloppe(self):
         Ri = max(self.Rip)
-        marge = 3 * Ri
+        marge = 1.2 * Ri
         x_min = 0
         x_max = 0
         y_min = 0
@@ -272,14 +273,14 @@ class Implicit:
         d2r = 2*pi/360
         l = 0.01
         m, pm = 100, None
-        for i in range(0,360,60):
-            for j in range(0,360,60):
+        for i in range(0,360,20):
+            for j in range(0,360,20):
                 pn = (cos(i*d2r)*cos(j*d2r),sin(i*d2r)*cos(j*d2r),sin(j*d2r))
                 v = self.f(self.add_vec(point,(pn[0]*l,pn[1]*l,pn[2]*l)))
                 if v<m: m, im, jm = v, i, j
         m = 100
-        for i in range(im-30,im+30,9):
-            for j in range(jm-30,jm+30,9):
+        for i in range(im-10,im+10,1):
+            for j in range(jm-10,jm+10,1):
                 pn = (cos(i*d2r)*cos(j*d2r),sin(i*d2r)*cos(j*d2r),sin(j*d2r))
                 v = self.f(self.add_vec(point,(pn[0]*l,pn[1]*l,pn[2]*l)))
                 if v<m: m, pm = v, pn

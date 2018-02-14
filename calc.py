@@ -7,11 +7,17 @@ Ri = 0.1
 ki = 10.0
 iso = 3
 eps = 0.3
-nb_cubes = 40 # cubes par côté
-t_end = 1
+nb_cubes = 60 # cubes par côté
+t_end = 50
 
 points,lines,faces,Rip,kip,coef,ids = litObj(argv[1], Ri, ki)
 
+print(points, file=stderr)
+print(lines, file=stderr)
+print(faces, file=stderr)
+print(Rip, file=stderr)
+print(kip, file=stderr)
+print(coef, file=stderr)
 print(ids, file=stderr)
 
 anim_fun = litAnim(argv[2])

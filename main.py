@@ -5,7 +5,7 @@ from pickle import load
 
 from scene import Scene
 
-dt = 200
+dt = 50
 
 if len(argv)==1:
     argv.append("modeles/cube.obj")
@@ -15,8 +15,8 @@ if len(argv) < 2:
 
 if argv[1].endswith(".pts"):
     with open(argv[1],"rb") as f:
-        points,lines,faces = load(f)
-        implicit_points = load(f)
+        lines,faces = load(f)
+        animation = load(f)
 else:
     with popen("pypy3 calc.py "+argv[1]+" "+argv[2]+" | tee last.pts") as f:
         lines,faces = load(f.buffer)
