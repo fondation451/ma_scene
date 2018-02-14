@@ -17,6 +17,7 @@ def vecteur_dir(p1, p2, step_line):
 class Implicit:
     def __init__(self, points, lignes, Rip, kip, coef, iso, eps, nb_cubes):
         self.points = points
+        self.lines_ind = lignes
         self.lignes = []
         self.Rip = Rip
         self.kip = kip
@@ -28,8 +29,13 @@ class Implicit:
         self.nb_cubes = nb_cubes
         self.inter = {}
 
-        # Init lignes
-        for l in lignes:
+        # Init
+        self.init_lines()
+
+
+    def init_lines(self):
+        self.lignes = []
+        for l in self.lines_ind:
             i = l[0] - 1
             j = l[1] - 1
             a = self.points[i]
@@ -46,8 +52,6 @@ class Implicit:
             self.lignes.append((a, b, vect_dir))
             self.Ril.append(Riline)
             self.kil.append(kiline)
-        print("Lignes :", file=stderr)
-        print(len(self.lignes), file=stderr)
 
 
     def dist(self, p1, p2):
@@ -58,7 +62,8 @@ class Implicit:
 
 
     def fi(self, i, P):
-        distance = self.dist(self.points[i], P)
+        pi = self.points[i]
+        distance = self.dist(pi, P)
         Ri = self.Rip[i]
         ki = self.kip[i]
         coef = self.coef[i]
@@ -103,7 +108,7 @@ class Implicit:
 
     def add_vec(self, v1, v2):
         return [v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]]
-    
+
 
     def intersection_line(self, p1, p2):
         " Verifie si la surface implicite s'intersecte avec un segment "
@@ -130,7 +135,7 @@ class Implicit:
                 p2,v1=p,v
         self.inter[l] = p
         return p
- 
+
 
     def intersection_cube(self, c):
         """ Renvoie tous les points qui s'intersectent avec un cube

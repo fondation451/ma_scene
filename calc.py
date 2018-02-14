@@ -1,4 +1,4 @@
-from obj import litObj
+from obj import litObj, litAnim
 from implicit import Implicit
 from sys import argv, stdout,stderr
 from pickle import dump
@@ -10,27 +10,39 @@ ki = 10.0
 iso = 3
 eps = 0.3
 nb_cubes = 30 # cubes par côté
+t_end = 20
 
-points,lines,faces,Rip,kip,coef = litObj(argv[1], Ri, ki)
+points,lines,faces,Rip,kip,coef,ids = litObj(argv[1], Ri, ki)
 
-#print(ki_points, file=stderr)
-#print(Ri_points, file=stderr)
-#print(Ri_lines, file=stderr)
-#print(ki_lines, file=stderr)
+print(ids, file=stderr)
+
+anim_fun = litAnim(argv[2])
+exec(anim_fun, globals())
+
+def update_frame(points, ids, t):
+    new_points = []
+    for i in range(0, len(points)):
+        new_points.append(__compute_anim(points[i], ids[i], t))
+
+    return new_points
+
+def animation_of(points, ids, t_end):
+    out = []
+    for t in range(0, t_end + 1):
+        new_points = update_frame(points, ids, t)
+        implicit = Implicit(new_points, lines, Rip, kip, coef, iso, eps, nb_cubes)
+        implicit_points = implicit.compute()
+        out.append((new_points, implicit_points))
+
+    return out
 
 # Traitement des surfaces implicites
 ####
 
-implicit = Implicit(points, lines, Rip, kip, coef, iso, eps, nb_cubes)
-#iprint("Points du squelette\n")
-#print(points)
-implicit_points = implicit.compute()
-
-#print("Points de la surface implicite\n")
-#print(implicit_points)
+animation = animation_of(points, ids, t_end)
 
 ####
 
-dump((points,lines,faces),stdout.buffer)
-dump(implicit_points,stdout.buffer)
+dump((lines,faces),stdout.buffer)
+dump(animation,stdout.buffer)
 

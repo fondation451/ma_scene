@@ -5,16 +5,18 @@ from OpenGL.GLU import *
 from math import sin,cos,pi
 from random import random
 from time import sleep
+from sys import argv, stdout,stderr
 
 d2r = 2*pi/360 #degrés (gl et code) vers radians (python.math)
 
 class Scene:
-    def __init__(s, points, lignes, faces, imppoints):
+    def __init__(s, animation, lignes, faces, dt):
         s.lat = 30             # latitude
         s.lon = 30             # longitude
         s.xOld, s.yOld = 0, 0  # ancienne position de la souris
-        s.points = points; s.lignes = lignes; s.faces = faces
-        s.imppoints = imppoints
+        s.animation = animation; s.lignes = lignes; s.faces = faces
+        s.time = 0
+        s.dt = dt
         s.drawimp = True
         s.persp = True
         s.light = True
@@ -46,7 +48,17 @@ class Scene:
         glutAddSubMenu("Lumiere".encode("Latin9"),lightMenu)
         glutAddMenuEntry("Quitter",1)
 
+
+    def assocDisplay(s, t):
+        print(t, file=stderr)
+        s.time = t
+        glutDisplayFunc(s.display)
+        glutIdleFunc(s.display)
+
+
     def associeFonctions(s):
+        for i in range(0, len(s.animation)):
+            glutTimerFunc(i * s.dt, s.assocDisplay, i)
         glutDisplayFunc(s.display)
         glutReshapeFunc(s.reshape)
         glutMouseFunc(s.mouse)
@@ -60,6 +72,8 @@ class Scene:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
 
+        points, imppoints = s.animation[s.time]
+
         # on se recule (sinon on a le nez dans le lavabo)
         glTranslate(0,0,-8)
         # on tourne selon l'axe vertical, facile
@@ -71,19 +85,19 @@ class Scene:
         for i in s.faces:
             glBegin(GL_POLYGON)
             for j in i:
-                glVertex3f(*s.points[j[0]-1])
+                glVertex3f(*points[j[0]-1])
             glEnd()
 
         glColor3f(.8,.8,0)
         for a,b in s.lignes:
             glBegin(GL_LINES)
-            glVertex3f(*s.points[a-1])
-            glVertex3f(*s.points[b-1])
+            glVertex3f(*points[a-1])
+            glVertex3f(*points[b-1])
             glEnd()
 
         if s.drawimp:
             glColor3f(1,1,1)
-            for l in s.imppoints:
+            for l in imppoints:
                 #glColor3f(random(),random(),random())
                 glBegin(GL_POLYGON)
                 for p in l:
