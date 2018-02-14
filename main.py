@@ -5,7 +5,7 @@ from pickle import load
 
 from scene import Scene
 
-dt = 50
+dt = 30
 
 if len(argv)==1:
     argv.append("modeles/cube.obj")
