@@ -1,3 +1,13 @@
+    Lignes :
+     22
+    Calcul surface
+     7260 non-vides sur 71668    
+     23.057 s
+    Calcul normales
+     32.088 s
+
+![Le fameux évier](test.png)
+ 
 Optimisé pour modèles/cubelignes.obj.
 
 Pb: quelques polygones ont des sommets qui divergent pour certaines

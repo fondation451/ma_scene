@@ -1,6 +1,5 @@
 from sys import argv, stderr
 from os import popen
-from OpenGL.GLUT import *
 from pickle import load
 # je me le permets car les commandes sont préfixées par glut
 
@@ -9,7 +8,7 @@ from scene import Scene
 dt = 200
 
 if len(argv)==1:
-    argv.append("modèles/cube.obj")
+    argv.append("modeles/cube.obj")
 if len(argv) < 2:
     print("Utilisation: ma_scene.py scene.obj anim.py")
     exit(1)
@@ -23,15 +22,6 @@ else:
         lines,faces = load(f.buffer)
         animation = load(f.buffer)
 
-glutInit(1,"")
-glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH)
-glutInitWindowPosition(200,200)
-glutInitWindowSize(500,500)
-glutCreateWindow(b"Ma scene")
-
 
 scene = Scene(animation,lines,faces,dt)
-scene.associeFonctions()
-
-glutMainLoop()
-
+scene.main()

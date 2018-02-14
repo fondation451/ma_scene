@@ -3,14 +3,12 @@ from implicit import Implicit
 from sys import argv, stdout,stderr
 from pickle import dump
 
-Ri = 1.0
+Ri = 0.1
 ki = 10.0
-#ki = 2.0
-#iso = 3
 iso = 3
 eps = 0.3
-nb_cubes = 30 # cubes par côté
-t_end = 20
+nb_cubes = 40 # cubes par côté
+t_end = 1
 
 points,lines,faces,Rip,kip,coef,ids = litObj(argv[1], Ri, ki)
 
@@ -30,7 +28,7 @@ def animation_of(points, ids, t_end):
     out = []
     for t in range(0, t_end + 1):
         new_points = update_frame(points, ids, t)
-        implicit = Implicit(new_points, lines, Rip, kip, coef, iso, eps, nb_cubes)
+        implicit = Implicit(new_points, lines, faces, Rip, kip, coef, iso, nb_cubes)
         implicit_points = implicit.compute()
         out.append((new_points, implicit_points))
 
@@ -45,4 +43,3 @@ animation = animation_of(points, ids, t_end)
 
 dump((lines,faces),stdout.buffer)
 dump(animation,stdout.buffer)
-
