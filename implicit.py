@@ -253,14 +253,16 @@ class Implicit:
         print("",round(time()-t,3),"s", file=stderr)
         print("Calcul normales", file=stderr)
         t=time()
-        num = len(points)
-        norm = [None]*num
-        for i,l in enumerate(points):
-            if not i%43: print("\r",i,"/",num,"  ",end="",file=stderr)
-            #norm[i] = [(p,p) for p in l] # pour passer le calcul
-            norm[i] = [(p,self.normal_at(p)) for p in l]
+        self.num = len(points)
+        with Pool() as pool:
+            norm = pool.map(self.normals, enumerate(points))#, chunksize=len(points)//10)
         print("\r",round(time()-t,3),"s     ", file=stderr)
         return norm
+
+    def normals(self, arg):
+        i, l = arg
+        if not i%43: print("\r",i,"/",self.num,"  ",end="",file=stderr,flush=True)
+        return [(p,self.normal_at(p)) for p in l]
     
     def normal_at(self, point):
         d2r = 2*pi/360
@@ -302,3 +304,34 @@ class Implicit:
             l.remove(nearest)
             l2.append(nearest)
         return [p for f,p in l2]
+
+    def slice(self, n, lon, lat, hau):
+        d2r = 2*pi/360
+        lon, lat = d2r*lon, d2r*lat
+        l = []
+        for i in range(n):
+            c = []
+            x = -2+4*i/n
+            if not i%43: print("\r",i,"/",n,"  ",end="",file=stderr)
+            for j in range(n):
+#            glRotate(s.lon,0,1.0,0)
+#            glRotate(s.plat,0,cos(d2r*s.plon),sin(d2r*s.plon))
+                y = hau
+#                px = cos(lat)*x+sin(lat)*y
+#                py = hau
+#                pz = -sin(lat)*x+cos(lat)*y
+#                px,py,pz =  px, -sin(lon)*py+cos(lon)*pz, cos(lon)*py+sin(lon)*pz
+                z = -2+4*j/n
+                ca,sa = cos(lon),sin(lon)
+                cb,sb = cos(lat),sin(lat)
+   #             px,py,pz = [x*(ca*(ca*cb+cb*sa)-ca*sa*sb)+z*(-sa*(ca*cb+cb*sa)-ca**2*sb)-sa*sb*y,
+    #                        -sa**2*sb*z+ca*sa*sb*x+y*(cb*sa+ca),
+     #                       x*(sa*(ca*cb+sa)+ca**2*sb)+z*(ca*(ca*cb+sa)-ca*sa*sb)]
+
+                px,py,pz = [x*(ca*(cb*sa**2+ca**2*cb)-ca**2*sa*sb)+z*(-sa*(cb*sa**2+ca**2*cb)-ca**3*sb)-sa**2*sb*y,-sa**3*sb*z+ca*sa**2*sb*x+y*(cb*sa**2+ca**2),x*(sa*(ca**2*cb+sa**2)+ca**3*sb)+z*(ca*(ca**2*cb+sa**2)-ca**2*sa*sb)]
+                
+                c.append(self.f((px,py,pz)))
+            l.append(c)
+        print("\r            ",end="\r")
+        return l
+    

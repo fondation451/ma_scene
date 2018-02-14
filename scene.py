@@ -15,11 +15,15 @@ class Mode(IntEnum):
 d2r = 2*pi/360 #degrés (gl et code) vers radians (python.math)
 
 class Scene:
-    def __init__(s, points, lignes, faces, imppoints):
+    def __init__(s, points, lignes, faces, imppoints, imp):
         s.lat = 30             # latitude
         s.lon = 30             # longitude
+        s.plat = 0             # latitude
+        s.plon = 0             # longitude
+        s.phau = 0             # hauteur
         s.xOld, s.yOld = 0, 0  # ancienne position de la souris
         s.points = points; s.lignes = lignes; s.faces = faces
+        s.imp = imp
         s.imppoints = imppoints
         s.mode = Mode.surface
         s.persp = True
@@ -31,12 +35,38 @@ class Scene:
         s.wScene = glutCreateSubWindow(s.wMain,   0, 0, 1000, 500)
         s.wVisu =  glutCreateSubWindow(s.wMain, 500, 0,  500, 500)
         glutHideWindow()
-        s.init3d()
+        glEnable(GL_TEXTURE_2D);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glutSetWindow(s.wScene)
         s.createMenu()
         s.init3d()
         s.associeFonctions()
 
+    def calcText(s):
+        def couleur(v):
+            v = (v-mn)/(mx-mn)
+            v = min(v,1)
+            v = v**0.4
+#            if v%0.05>0.045:
+#                return 255,255,255
+            return 0,0,int(255*v)
+            if v<0.5:
+                return 0,0,int(256*v*2)
+            else:
+                return 0,int(255*v*2-256),int(511-256*v*2)
+
+        if s.mode!=Mode.visualise: return
+        z = 64
+        sl = s.imp.slice(z,s.plon,s.plat,s.phau)
+        mn = 0#min(min(c) for c in sl)
+        mx = 10#max(max(c) for c in sl)
+        data = bytearray(z*z*3)
+        for x,c in enumerate(sl):
+            for y,v in enumerate(c):
+                data[3*(z*x+y):3*(z*x+y)+3] = couleur(v)
+        glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, z, z, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        
     def init3d(s):
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_LIGHTING)
@@ -78,7 +108,7 @@ class Scene:
         glutAttachMenu(GLUT_RIGHT_BUTTON)
         glutKeyboardFunc(s.kbd)
         glClearColor(0,0,0,0)#1,1,1,0)
-        glutDisplayFunc(s.displayScene)
+        glutDisplayFunc(s.displayVisu)
         glutReshapeFunc(s.reshape)
 
         glutSetWindow(s.wScene)
@@ -92,9 +122,32 @@ class Scene:
     def main(s): glutMainLoop()
         
     def displayVisu(s):
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glutSwapBuffers()#glFlush()
+        s.calcText()
+        glClear(GL_COLOR_BUFFER_BIT)
+        glBegin(GL_POLYGON)
+        glTexCoord2d(0,0)
+        glVertex2f(-0.5,-0.5)
+        glTexCoord2d(0,1)
+        glVertex2f(-0.5, 0.5)
+        glTexCoord2d(1,1)
+        glVertex2f( 0.5, 0.5)
+        glTexCoord2d(1,0)
+        glVertex2f( 0.5,-0.5)
+        glEnd()
+        glutSwapBuffers()
         
+    def poly(s):
+        glDisable(GL_LIGHTING)
+        glBegin(GL_POLYGON)
+        glColor3f(0.9,0.9,0.5)
+        glNormal3f( 0, 1, 0)
+        glVertex3f(-2, 0,-2)
+        glVertex3f(-2, 0, 2)
+        glVertex3f( 2, 0, 2)
+        glVertex3f( 2, 0,-2)
+        glEnd()
+        glEnable(GL_LIGHTING)
+
     def displayScene(s):
         "Tout l'affichage se fait ici"
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -107,6 +160,14 @@ class Scene:
         # on tourne selon un compromis entre l'axe x et l'axe z pour lever la caméra
         glRotate(s.lat,cos(d2r*s.lon),0,sin(d2r*s.lon)) #
 
+        if s.mode==Mode.visualise:
+            glPushMatrix()
+            glRotate(s.plon,1,0,0)
+            glRotate(s.plat,0,cos(d2r*s.plon),sin(d2r*s.plon))
+            glTranslate(0,s.phau,0)
+            s.poly()
+            glPopMatrix()
+        
         if s.mode==Mode.squelette:
             glColor3f(1,0,0)
             for i in s.faces:
@@ -121,6 +182,7 @@ class Scene:
                 glVertex3f(*s.points[a-1])
                 glVertex3f(*s.points[b-1])
                 glEnd()
+                
         if s.mode>Mode.squelette:
             glColor3f(1,1,1)
             for l in s.imppoints:
@@ -174,14 +236,25 @@ class Scene:
             s.mode = Mode.surface if s.mode==Mode.visualise else Mode.visualise
             s.wreshape(*s.size)
 
-    def mouse(s,b,e,x,y):
-        if b==GLUT_LEFT_BUTTON and e==GLUT_DOWN:
+    def mouse(s,but,state,x,y):
+        if but==GLUT_LEFT_BUTTON and state==GLUT_DOWN:
             s.xOld=x
             s.yOld=y
+        elif but in (3,4) and s.mode==Mode.visualise:
+            s.phau += 0.04 if but==4 else -0.04
+            s.phau = (s.phau+1.8)%3.6 - 1.8
+            glutPostWindowRedisplay(s.wVisu)
+            glutPostRedisplay()
+        
 
     def move(s,x,y):
-        s.xOld, s.lon = x, (s.lon+x-s.xOld)%360
-        s.yOld, s.lat = y, (s.lat+y-s.yOld)%360
+        if s.mode==Mode.visualise:
+            s.xOld, s.plon = x, (s.plon+x-s.xOld)%360
+            s.yOld, s.plat = y, (s.plat+y-s.yOld)%360
+            glutPostWindowRedisplay(s.wVisu)
+        else:
+            s.xOld, s.lon = x, (s.lon+x-s.xOld)%360
+            s.yOld, s.lat = y, (s.lat+y-s.yOld)%360
         glutPostRedisplay()
 
     def idle(s,*p):
